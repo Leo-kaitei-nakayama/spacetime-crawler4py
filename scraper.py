@@ -69,7 +69,7 @@ def extract_next_links(url, resp):
         print(f"BeautifulSoup parse error for {url}: {e}")
         return []
     
-    for tag in soup(["script", "stype", "header", "footer", "nav", "meta"]):
+    for tag in soup(["script", "style", "header", "footer", "nav", "meta"]):
         tag.decompose()
         
     try:
@@ -104,12 +104,12 @@ def extract_next_links(url, resp):
     if defragged_url not in unique_pages:
         unique_pages.add(defragged_url)
         
-        page_fingerprints = computeWordFrequencies(filtered)
-        for word, count in page_fingerprints.items():
+        page_freq = computeWordFrequencies(filtered)
+        for word, count in page_freq.items():
             if word in word_frequency:
-                word_frequency[word] += 1
+                word_frequency[word] += count
             else:
-                word_frequency[word] = 1
+                word_frequency[word] = count
                 
         if len(filtered) > longest_page["count"]:
             longest_page["url"] = defragged_url
@@ -279,12 +279,15 @@ def detect_trap(url):
     return False
     
 
+def get_count(item):
+    return -item[1]
+
 def print_report():
     print("-----REPORT-----")
     print(f"1. Unique pages: {len(unique_pages)}")
     print(f"2. Longest page: {longest_page['url']} ({longest_page['count']} words)")
     print(f"3. Top 50 words:")
-    top_50 = dict(sorted(word_frequency.items(), key=lambda x: -x[1])[:50])
+    top_50 = dict(sorted(word_frequency.items(), key=get_count)[:50])
     print_freq(top_50)
     print(f"4. Subdomains ({len(sub_domain_page)} total):")
     sub_lst = sorted(sub_domain_page.keys())
