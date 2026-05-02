@@ -1,6 +1,7 @@
 import re
 from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
+from PartA import tokenize, computeWordFrequencies, print_freq
 
 from hashlib import md5
 
@@ -10,7 +11,7 @@ longest_page = {"url": "", "count": 0}
 sub_domain_page = {}
 page_fingerprints = set()
 url_path_counts = {}
-crawled_count     = {} 
+crawled_count = {} 
 
 
 STOP_WORDS = {
@@ -36,7 +37,7 @@ def scraper(url, resp):
 def extract_next_links(url, resp):
     
     # This check that url is not an empty, and it has to be string
-    if not url or isinstance(url, str): 
+    if not url or not isinstance(url, str): 
         return []
     
     # check that resp exist
@@ -69,7 +70,7 @@ def extract_next_links(url, resp):
         return []
     
     for tag in soup(["script", "stype", "header", "footer", "nav", "meta"]):
-        tag.decompose
+        tag.decompose()
         
     try:
         defragged_url, _ = urldefrag(url)
@@ -77,9 +78,10 @@ def extract_next_links(url, resp):
         return []
     
     
-    #TODO: Tokenizer from pervious assignment comes here
-    
-    filtered = ""
+    #Tokenizer from pervious assignment comes here
+    text = soup.get_text(separator=" ")
+    tokens = tokenize(text)
+    filtered = [t.lower() for t in tokens if t.lower() not in STOP_WORDS]
     
     
     if len(filtered) < 50:
@@ -87,8 +89,8 @@ def extract_next_links(url, resp):
     
     #do the near-duplicate fingerprints
     try: 
-        words = md5(" ".join(sorted(set(filtered))).encode)
-        frequency = words.hexdigest
+        words = md5(" ".join(sorted(set(filtered))).encode())
+        frequency = words.hexdigest()
     except Exception:
         frequency = None
        
@@ -102,7 +104,8 @@ def extract_next_links(url, resp):
     if defragged_url not in unique_pages:
         unique_pages.add(defragged_url)
         
-        for word in filtered:
+        page_fingerprints = computeWordFrequencies(filtered)
+        for word, count in page_fingerprints.items():
             if word in word_frequency:
                 word_frequency[word] += 1
             else:
@@ -123,11 +126,11 @@ def extract_next_links(url, resp):
             else:
                 crawled_count[host] = 1
                 
-        if host.endswith(".uci.edu"):
-            if host in sub_domain_page:
-                sub_domain_page[host].add(defragged_url)
-            else:
-                sub_domain_page[host] = {defragged_url}
+            if host.endswith(".uci.edu"):
+                if host in sub_domain_page:
+                    sub_domain_page[host].add(defragged_url)
+                else:
+                    sub_domain_page[host] = {defragged_url}
     
     #Extract link         
     extracted = []
@@ -182,7 +185,32 @@ def is_valid(url):
         if not parsed.netloc:
             return False
         
+        host = parsed.netloc.lower().split(":")[0]
+        if not re.match(r"^([\w\-]+\.)*(ics|cs|informatics|stat)\.uci\.edu$", host):
+            return False
         
+        path = parsed.path.lower()
+        if re.search(r"\.(sql|db|log|xml|json|rss|atom|txt|tsv|apk|py|r|mat)$", path):
+            return False
+        
+        path_parts = [p for p in path.split("/") if p]
+        if len(path_parts) > 4 and len(path_parts) != len(set(path_parts)):
+            return False
+        
+        if parsed.query.count("&") > 3:
+            return False
+        
+        if re.search(
+            r"(calendar|/event/|/tag/|/category/"
+            r"|replytocom|format=rss|feed=rss"
+            r"|phpsessid|sid=|action=login|action=edit"
+            r"|diff=|oldid=|offset=|sort=|order=|filter=)",
+            url.lower()
+        ):
+            return False
+        
+        if detect_trap(url):
+            return False
         
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
@@ -250,5 +278,16 @@ def detect_trap(url):
     
     return False
     
-    
+
+def print_report():
+    print("-----REPORT-----")
+    print(f"1. Unique pages: {len(unique_pages)}")
+    print(f"2. Longest page: {longest_page['url']} ({longest_page['count']} words)")
+    print(f"3. Top 50 words:")
+    top_50 = dict(sorted(word_frequency.items(), key=lambda x: -x[1])[:50])
+    print_freq(top_50)
+    print(f"4. Subdomains ({len(sub_domain_page)} total):")
+    sub_lst = sorted(sub_domain_page.keys())
+    for sub in sub_lst:
+        print(f"   {sub}, {len(sub_domain_page[sub])}")
             
