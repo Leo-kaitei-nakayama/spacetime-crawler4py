@@ -2,7 +2,7 @@ import re
 from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
 from PartA import tokenize, computeWordFrequencies, print_freq
-
+import atexit
 from hashlib import md5
 
 unique_pages = set()
@@ -12,6 +12,7 @@ sub_domain_page = {}
 page_fingerprints = set()
 url_path_counts = {}
 crawled_count = {} 
+atexit.register(print_report)
 
 
 STOP_WORDS = {
@@ -83,7 +84,6 @@ def extract_next_links(url, resp):
     tokens = tokenize(text)
     filtered = [t.lower() for t in tokens if t.lower() not in STOP_WORDS]
     
-    
     if len(filtered) < 50:
         return []
     
@@ -110,10 +110,11 @@ def extract_next_links(url, resp):
                 word_frequency[word] += count
             else:
                 word_frequency[word] = count
-                
-        if len(filtered) > longest_page["count"]:
+        
+        raw_count = len(tokens)   
+        if raw_count > longest_page["count"]:
             longest_page["url"] = defragged_url
-            longest_page["count"] = len(filtered)
+            longest_page["count"] = raw_count
             
         try:
             host = urlparse(defragged_url).netloc.lower().split(":")[0]
@@ -241,16 +242,16 @@ def detect_trap(url):
     path = parsed.path.lower()
     query = parsed.query.lower()
     
-    # First trap detection
-    if host in crawled_count and crawled_count[host] > 500:
-        return True
+    # # First trap detection
+    # if host in crawled_count and crawled_count[host] > 500:
+    #     return True
     
     # Too many URLs under the same path prefix
     path_parts = [p for p in path.split("/") if p]
     if len(path_parts) >= 2:
-        path_prefix = "/".join(path_parts[:2])
+        path_prefix = host + "/" + "/".join(path_parts[:2])
     else:
-        path_prefix = path
+        path_prefix = host + "/" + path
         
     if path_prefix:
         if path_prefix in url_path_counts:

@@ -3,28 +3,35 @@ import sys
 
 
 # RUNTIME: function tokenize runs in O(n) / Linear time for each n characters in the file by visting e
-def tokenize(text_file_path):
+def tokenize(input_data):
     token_lst = []
-    with open(text_file_path,"r",encoding = "utf-8") as txt_file:
-        for line in txt_file:
-            for word in line.split():
-                if word.isalnum() and word.isascii():
-                    token_lst.append(word)
-                else:
-                    char_lst = []
-                    for char in word:
-                        if char.isalnum() and char.isascii():
-                            char_lst.append(char)
+    try:
+        path = Path(input_data)
+        if path.exists() and path.is_file():
+            with open(path, "r", encoding="utf-8") as txt_file:
+                lines = txt_file.readlines()
+        else:
+            raise ValueError  # treat as raw text
+    except (OSError, ValueError, TypeError):
+        lines = input_data.splitlines() if isinstance(input_data, str) else []
 
-                        else:
-                            if char_lst:
-                                token_lst.append("".join(char_lst))
-                                char_lst.clear()
+    for line in lines:
+        for word in line.split():
+            if word.isalnum() and word.isascii():
+                token_lst.append(word)
+            else:
+                char_lst = []
+                for char in word:
+                    if char.isalnum() and char.isascii():
+                        char_lst.append(char)
+                    else:
+                        if char_lst:
+                            token_lst.append("".join(char_lst))
+                            char_lst.clear()
+                if char_lst:
+                    token_lst.append("".join(char_lst))
 
-                    if char_lst:
-                        token_lst.append("".join(char_lst))
-
-        return token_lst
+    return token_lst
 
 # RUNTIME: function ComputeWordFrequencies runs in O(n) / Linear time  where n is the number of tokens,
 # all tokens are processed within a single loop and lookups are at O(1)
