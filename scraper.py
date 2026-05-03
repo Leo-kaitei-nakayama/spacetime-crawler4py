@@ -284,16 +284,18 @@ def get_count(item):
     return -item[1]
 
 def print_report():
-    print("-----REPORT-----")
-    print(f"1. Unique pages: {len(unique_pages)}")
-    print(f"2. Longest page: {longest_page['url']} ({longest_page['count']} words)")
-    print(f"3. Top 50 words:")
-    top_50 = dict(sorted(word_frequency.items(), key=get_count)[:50])
-    print_freq(top_50)
-    print(f"4. Subdomains ({len(sub_domain_page)} total):")
-    sub_lst = sorted(sub_domain_page.keys())
-    for sub in sub_lst:
-        print(f"   {sub}, {len(sub_domain_page[sub])}")
+    with open("report.txt", "w") as file:
+        file.write("-----REPORT-----")
+        file.write(f"1. Unique pages: {len(unique_pages)}\n")
+        file.write(f"2. Longest page: {longest_page['url']} ({longest_page['count']} words)\n")
+        file.write(f"3. Top 50 words:")
+        top_50 = dict(sorted(word_frequency.items(), key=get_count)[:50])
+        for word, count in sorted(top_50.items(), key=lambda x: (-x[1], x[0])):
+            file.write(f"   {word}: {count}\n")
+        file.write(f"4. Subdomains ({len(sub_domain_page)} total):\n")
+        sub_lst = sorted(sub_domain_page.keys())
+        for sub in sub_lst:
+            file.write(f"   {sub}, {len(sub_domain_page[sub])}\n")
         
 atexit.register(print_report)
             
