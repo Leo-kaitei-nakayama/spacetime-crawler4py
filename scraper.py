@@ -11,8 +11,7 @@ longest_page = {"url": "", "count": 0}
 sub_domain_page = {}
 page_fingerprints = set()
 url_path_counts = {}
-crawled_count = {} 
-atexit.register(print_report)
+crawled_count = {}
 
 
 STOP_WORDS = {
@@ -295,4 +294,6 @@ def print_report():
     sub_lst = sorted(sub_domain_page.keys())
     for sub in sub_lst:
         print(f"   {sub}, {len(sub_domain_page[sub])}")
+        
+atexit.register(print_report)
             
