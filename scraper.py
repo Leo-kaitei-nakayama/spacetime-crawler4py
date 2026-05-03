@@ -47,6 +47,7 @@ def extract_next_links(url, resp):
     
     # make sure the http is 200 to process
     if resp.status != 200:
+        print(f"Skipping {url} | status: {resp.status}")
         return []
     
     if resp.raw_response is None:
