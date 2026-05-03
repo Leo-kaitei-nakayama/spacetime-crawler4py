@@ -285,10 +285,10 @@ def get_count(item):
 
 def print_report():
     with open("report.txt", "w") as file:
-        file.write("-----REPORT-----")
+        file.write("-----REPORT-----\n")
         file.write(f"1. Unique pages: {len(unique_pages)}\n")
         file.write(f"2. Longest page: {longest_page['url']} ({longest_page['count']} words)\n")
-        file.write(f"3. Top 50 words:")
+        file.write(f"3. Top 50 words:\n")
         top_50 = dict(sorted(word_frequency.items(), key=get_count)[:50])
         for word, count in sorted(top_50.items(), key=lambda x: (-x[1], x[0])):
             file.write(f"   {word}: {count}\n")
