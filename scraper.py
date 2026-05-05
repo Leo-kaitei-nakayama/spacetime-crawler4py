@@ -230,7 +230,12 @@ def is_valid(url):
             r"(calendar|/event/|/tag/|/category/"
             r"|replytocom|format=rss|feed=rss"
             r"|phpsessid|sid=|action=login|action=edit"
-            r"|diff=|oldid=|offset=|sort=|order=|filter=)",
+            r"|diff=|oldid=|offset=|sort=|order=|filter="
+            r"|do=diff|do=revisions|do=recent|do=export_pdf|do=media"
+            r"|do=index|do=search|do=edit|do=login"
+            r"|tab_files=|rev=\d+"
+            r"|wp-json|wp-admin|attachment_id=|/%3f"
+            r"|%5b|%5d)",
             url.lower()
         ):
             return False
