@@ -80,8 +80,8 @@ def track_subdomains(url):
 
 
 def scraper(url, resp):
-    links = extract_next_links(url, resp)
-    return [link for link in links if is_valid(link)]
+    return extract_next_links(url, resp)
+
 
 def extract_next_links(url, resp):
 
@@ -126,29 +126,37 @@ def extract_next_links(url, resp):
     except Exception:
         return []
 
+    if detect_trap(defragged_url,update_count= True):
+        return []
+
     words = get_words(soup_for_words)
     filtered = [word.lower() for word in words if word.lower() not in STOP_WORDS]
 
 
 
     #do the near-duplicate fingerprints
+    duplicate_page = False
+
     if len(filtered) >= 50:
         try:
-            frequency = md5(" ".join(sorted(set(filtered))).encode()).hexdigest()
+            fprint = md5(" ".join(sorted(set(filtered))).encode()).hexdigest()
         except Exception:
-            frequency = None
+            fprint = None
 
-        if frequency is not None:
-            if frequency in page_fingerprints:
-                return []
-            page_fingerprints.add(frequency)
+        if fprint is not None:
+            if fprint in page_fingerprints:
+                duplicate_page = True
+            else:
+                page_fingerprints.add(fprint)
 
     #TODO: this is analysis part but not clear so figure out this part
     if defragged_url not in unique_pages:
         track_unique_pages(defragged_url)
-        track_longest_page(defragged_url,words)
-        track_word_frequencies(words)
         track_subdomains(defragged_url)
+        if not duplicate_page:
+            track_longest_page(defragged_url,words)
+            track_word_frequencies(words)
+
     #Extract link
     extracted = []
     for tag1 in soup.find_all('a', href=True):
@@ -167,7 +175,8 @@ def extract_next_links(url, resp):
             continue
 
         try:
-            absolute = urljoin(url, href)
+            base_url = resp.raw_response.url
+            absolute = urljoin(base_url, href)
             defragged, _ = urldefrag(absolute)
             if defragged and is_valid(defragged):
                 extracted.append(defragged)
@@ -243,7 +252,7 @@ def is_valid(url):
         return False
 
 
-def detect_trap(url):
+def detect_trap(url,update_count = False):
     """ This function return true when the url looks like the crawler trap"""
     if not url or not isinstance(url, str):
         return True
@@ -269,11 +278,9 @@ def detect_trap(url):
         path_prefix = host + "/" + path
 
     if path_prefix:
-        if path_prefix in url_path_counts:
-            url_path_counts[path_prefix] += 1
-        else:
-            url_path_counts[path_prefix] = 1
-        if url_path_counts[path_prefix] > 200:
+        if update_count:
+                url_path_counts[path_prefix] = url_path_counts.get(path_prefix,0) + 1
+        if url_path_counts.get(path_prefix,0) >200:
             return True
 
     # Long numeric segment
@@ -304,8 +311,8 @@ def print_report():
         file.write(f"1. Unique pages: {len(unique_pages)}\n")
         file.write(f"2. Longest page: {longest_page['url']} ({longest_page['count']} words)\n")
         file.write(f"3. Top 50 words:\n")
-        top_50 = dict(sorted(word_frequency.items(), key=get_count)[:50])
-        for word, count in sorted(top_50.items(), key=lambda x: (-x[1], x[0])):
+        top_50 = sorted(word_frequency.items(), key=lambda x: (-x[1],x[0]))[:50]
+        for word, count in top_50:
             file.write(f"   {word}: {count}\n")
         file.write(f"4. Subdomains ({len(sub_domain_page)} total):\n")
         sub_lst = sorted(sub_domain_page.keys())
