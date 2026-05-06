@@ -55,8 +55,15 @@ def track_word_frequencies(words):
     for word in words:
         word = word.lower()
 
-        if word not in STOP_WORDS:
-            flter.append(word)
+        if word in STOP_WORDS:
+            continue
+        if word.isdigit():
+            continue
+        #WILL REMOVE SINGLE LETTERS SO "a" can't be used not sure if this is necessary
+        if len(word) <= 1:
+            continue
+
+        flter.append(word)
 
     page_frq = computeWordFrequencies(flter)
     for word, count in page_frq.items():
@@ -130,7 +137,7 @@ def extract_next_links(url, resp):
         return []
 
     words = get_words(soup_for_words)
-    filtered = [word.lower() for word in words if word.lower() not in STOP_WORDS]
+    filtered = [word.lower() for word in words if word.lower() not in STOP_WORDS and not word.isdigit() and len(word) > 1]
 
 
 
