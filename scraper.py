@@ -13,7 +13,7 @@ page_fingerprints = set()
 url_path_counts = {}
 crawled_count = {}
 
-
+#some words that does not have any meaning
 STOP_WORDS = {
     "a","about","above","after","again","against","all","am","an","and","any",
     "are","as","at","be","because","been","before","being","below","between",
@@ -31,6 +31,7 @@ STOP_WORDS = {
 }
 
 def get_words(soup):
+    #soup([......]) is the shortcut of soup.find_all
     for tg in soup(["script","style","header","footer","nav","meta","noscript"]):
         tg.decompose()
 
