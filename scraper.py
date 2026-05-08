@@ -31,27 +31,35 @@ STOP_WORDS = {
 }
 
 def get_words(soup):
-    #soup([......]) is the shortcut of soup.find_all
+    #soup([......]) is the shortcut of soup.find_all(....)
     for tg in soup(["script","style","header","footer","nav","meta","noscript"]):
+        #delete the tag and the contents inside that is not related to the main contents
         tg.decompose()
-
+    #Beautiful Soup method that remove all the HTML tags
     text = soup.get_text(separator = " ")
+    # tokenize using the assignment 1 PartA
     tokens = tokenize(text)
-
     return tokens
+    
 def track_unique_pages(url):
+    """track the Unique URL count"""
+    #urldefrag split url with main part and fragment part(after #)
     urlz, _ = urldefrag(url)
+    #add to the set
     unique_pages.add(urlz)
 
-def track_longest_page(url,words):
+def track_longest_page(url, words):
+    """This function check if the url is the new longest page"""
+    #urldefrag split url with main part and fragment part(after #)
     defragged, _ = urldefrag(url)
     word_count = len(words)
-
+    #if this url page has more word counts, update the longest_page to this url, count
     if word_count > longest_page["count"]:
         longest_page["url"] = defragged
         longest_page["count"] = word_count
 
 def track_word_frequencies(words):
+    """This function basically track word frequency but do not include degit, stop_words, and one characters"""
     flter = []
     for word in words:
         word = word.lower()
@@ -60,12 +68,12 @@ def track_word_frequencies(words):
             continue
         if word.isdigit():
             continue
-        #WILL REMOVE SINGLE LETTERS SO "a" can't be used not sure if this is necessary
+        #make sure one word such as 'a' or 'b' will not be counted since it does not have meaning
         if len(word) <= 1:
             continue
 
         flter.append(word)
-
+    # This part get all the words in the flter list using this function from PartA to count its frequency 
     page_frq = computeWordFrequencies(flter)
     for word, count in page_frq.items():
         if word in word_frequency:
@@ -74,16 +82,20 @@ def track_word_frequencies(words):
             word_frequency[word] = count
 
 def track_subdomains(url):
+    """This function track all the subdomain and how many pages each has"""
     defragged_url, _ = urldefrag(url)
 
     try:
+        #this separate url and get the lower case of network location part of url, and split the portal if there's one, and get the main part
         host = urlparse(defragged_url).netloc.lower().split(":")[0]
     except Exception:
         return
-
+    #check if its uci host
     if host.endswith(".uci.edu"):
         if host not in sub_domain_page:
+            #if the subdomain is new, it will create new folder set for it 
             sub_domain_page[host] = set()
+        #add url to the set
         sub_domain_page[host].add(defragged_url)
 
 
@@ -105,13 +117,14 @@ def extract_next_links(url, resp):
     if resp.status != 200:
         print(f"Skipping {url} | status: {resp.status}")
         return []
-
+    #check the actual downloaded page data is not empty
     if resp.raw_response is None:
         return []
+    #check the letters in the data is not empty
     if not resp.raw_response.content:
         return []
 
-    #This get the type of data server sent back
+    #This get the type of data server sent back and check the Content-tyope in header
     content_type = resp.raw_response.headers.get("Content-Type", "")
     #the content must be the html form
     if "text/html" not in content_type:
@@ -122,6 +135,7 @@ def extract_next_links(url, resp):
         return []
 
     try:
+        #create two soup object so one will be passed to extract link and one for extract words
         soup = BeautifulSoup(resp.raw_response.content, 'lxml')
         soup_for_words = BeautifulSoup(resp.raw_response.content, "lxml")
     except Exception as e:
@@ -134,19 +148,34 @@ def extract_next_links(url, resp):
     except Exception:
         return []
 
-    if detect_trap(defragged_url,update_count= True):
+    #check the trap by passing url and update the number of times we visit
+    if detect_trap(defragged_url, update_count= True):
         return []
 
     words = get_words(soup_for_words)
+    #do kind the same thing as track frequency function does.
     filtered = [word.lower() for word in words if word.lower() not in STOP_WORDS and not word.isdigit() and len(word) > 1]
 
 
 
-    #do the near-duplicate fingerprints
+    #do the near-duplicate fingerprints, extra credit part
     duplicate_page = False
-
+    # This is the minimum word counts that I think is meaning to check the duplication
     if len(filtered) >= 50:
         try:
+            """
+            Remove duplicate words
+            unique_words = set(filtered)
+            Sort alphabetically
+            sorted_words = sorted(unique_words)
+            Join into one string
+            joined = " ".join(sorted_words)
+            Convert to bytes
+            encoded = joined.encode()
+            Create MD5 hash
+            fprint = md5(encoded).hexdigest()
+            """
+            #wanted to implement Simhash but considering the time we had, we used md5 for now
             fprint = md5(" ".join(sorted(set(filtered))).encode()).hexdigest()
         except Exception:
             fprint = None
