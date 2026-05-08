@@ -176,6 +176,7 @@ def extract_next_links(url, resp):
             fprint = md5(encoded).hexdigest()
             """
             #wanted to implement Simhash but considering the time we had, we used md5 for now
+            #it will give 32 char string representing it
             fprint = md5(" ".join(sorted(set(filtered))).encode()).hexdigest()
         except Exception:
             fprint = None
@@ -187,6 +188,7 @@ def extract_next_links(url, resp):
                 page_fingerprints.add(fprint)
 
     #TODO: this is analysis part but not clear so figure out this part
+    #This part decide what to track 
     if defragged_url not in unique_pages:
         track_unique_pages(defragged_url)
         track_subdomains(defragged_url)
@@ -196,6 +198,7 @@ def extract_next_links(url, resp):
 
     #Extract link
     extracted = []
+    #this get the actual url from the tag href
     for tag1 in soup.find_all('a', href=True):
         href = tag1["href"]
 
@@ -212,7 +215,9 @@ def extract_next_links(url, resp):
             continue
 
         try:
+            #get the url of current page
             base_url = resp.raw_response.url
+            #convert it to the absolute path
             absolute = urljoin(base_url, href)
             defragged, _ = urldefrag(absolute)
             if defragged and is_valid(defragged):
@@ -249,6 +254,8 @@ def is_valid(url):
             return False
 
         host = parsed.netloc.lower().split(":")[0]
+        # Only allow URLs within the 4 domains specified in the assignment
+        # ([\w\-]+\.)* -> allows any subdomain prefix
         if not re.match(r"^([\w\-]+\.)*(ics|cs|informatics|stat)\.uci\.edu$", host):
             return False
 
@@ -257,12 +264,15 @@ def is_valid(url):
             return False
 
         path_parts = [p for p in path.split("/") if p]
+        # Block URLs that point to non-HTML file types that have no useful text content
         if len(path_parts) > 4 and len(path_parts) != len(set(path_parts)):
             return False
-
+            
+        # Skip urls with too many query parameters (>3 & symbols)
         if parsed.query.count("&") > 3:
             return False
-
+            
+        #Block urls that is trap or contain useless contents
         if re.search(
             r"(calendar|/event/|/tag/|/category/"
             r"|replytocom|format=rss|feed=rss"
@@ -279,7 +289,8 @@ def is_valid(url):
 
         if detect_trap(url):
             return False
-
+        
+        #check again if it is useless or not have in default
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
@@ -313,7 +324,9 @@ def detect_trap(url,update_count = False):
     #     return True
 
     # Too many URLs under the same path prefix
+    #split path and remove empty strings
     path_parts = [p for p in path.split("/") if p]
+    #this allows the counter correct increase
     if len(path_parts) >= 2:
         path_prefix = host + "/" + "/".join(path_parts[:2])
     else:
